@@ -24,7 +24,7 @@
 
 ### Phase 1 — Deliverables done
 - [x] **Repository scaffolding** (PR #1 → `dev`): monorepo, API registry, web skeleton, ingestion service, infra compose. Verified build/run/lint/typecheck on M2; ingestion Docker image builds/runs.
-- [ ] Project Intelligence Registry API (PostGIS-backed) — next
+- [x] **Project Intelligence Registry API — PostGIS-backed** (PR #2 → `dev`): `projects` table (GEOMETRY 4326 + JSONB milestones), pg repository with GeoJSON round-trip, auto migration on boot, Dockerized API service. Verified persistence + geometry round-trip on M2.
 - [ ] GIS boundary management + GeoServer layers
 - [ ] Satellite data integration (automated retrieval)
 - [ ] Initial dashboard (map via MapLibre GL)
@@ -54,6 +54,7 @@ See `docs/decisions.md`. Initial entries:
 
 ### PR history
 - **PR #1** `feature/repo-scaffold` → `dev` (merged 2026-07-08): Phase 1 repo scaffolding. Self-reviewed; build/run/lint/typecheck + Docker verified on M2.
+- **PR #2** `feature/project-registry-db` → `dev` (merged 2026-07-08): PostGIS-backed Project Registry. Self-reviewed; persistence + geometry round-trip verified on M2 + Docker.
 
 ---
 
