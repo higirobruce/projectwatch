@@ -22,6 +22,13 @@
 | 2 — Intelligence (3–6 mo) | Change detection, scoring, reporting | ⬜ Not started | Measurable change score vs. ground truth |
 | 3 — Pilot (6–9 mo) | Real projects, validation, feedback | ⬜ Not started | ≥ 5 projects monitored + feedback report |
 
+### Phase 1 — Deliverables done
+- [x] **Repository scaffolding** (PR #1 → `dev`): monorepo, API registry, web skeleton, ingestion service, infra compose. Verified build/run/lint/typecheck on M2; ingestion Docker image builds/runs.
+- [ ] Project Intelligence Registry API (PostGIS-backed) — next
+- [ ] GIS boundary management + GeoServer layers
+- [ ] Satellite data integration (automated retrieval)
+- [ ] Initial dashboard (map via MapLibre GL)
+
 ---
 
 ## Key Documents
@@ -44,6 +51,9 @@ See `docs/decisions.md`. Initial entries:
 - **2026-07-08 — Memory store:** In-repo `MEMORY.md` + `docs/` chosen over external graph for continuity across agents. (Alt rejected: graphify-only — not clone-portable.)
 - **2026-07-08 — PR review:** Coding agent self-reviews and merges to `dev`; user manually promotes `dev` → `main`. (Alt rejected: agent opens, user merges — slower loop.)
 - **2026-07-08 — Local runtime:** Single-node Docker Compose (or k3s) + MinIO, not multi-node K8s, to fit M2/16 GB.
+
+### PR history
+- **PR #1** `feature/repo-scaffold` → `dev` (merged 2026-07-08): Phase 1 repo scaffolding. Self-reviewed; build/run/lint/typecheck + Docker verified on M2.
 
 ---
 
