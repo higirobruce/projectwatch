@@ -6,8 +6,8 @@
 
 ## Status
 
-- **Phase:** Not started (Pre-implementation)
-- **Branch:** `main` (no `dev` yet — create before first feature work)
+- **Phase:** 1 — Foundation (in progress)
+- **Branch:** `dev` ✓ (main ✓) — feature branches off `dev`
 - **Last updated:** 2026-07-08
 - **MVP target:** Road construction monitoring
 - **Hardware profile:** MacBook Air, M2, 16 GB RAM, Docker
@@ -18,7 +18,7 @@
 
 | Phase | Goal | Status | Gate |
 |-------|------|--------|------|
-| 1 — Foundation (0–3 mo) | Registry, GIS, ingestion, dashboard | ⬜ Not started | Live map + automated ingestion demo |
+| 1 — Foundation (0–3 mo) | Registry, GIS, ingestion, dashboard | 🔵 In progress | Live map + automated ingestion demo |
 | 2 — Intelligence (3–6 mo) | Change detection, scoring, reporting | ⬜ Not started | Measurable change score vs. ground truth |
 | 3 — Pilot (6–9 mo) | Real projects, validation, feedback | ⬜ Not started | ≥ 5 projects monitored + feedback report |
 
