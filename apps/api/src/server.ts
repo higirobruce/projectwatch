@@ -1,21 +1,25 @@
 import express from "express";
-import { InMemoryProjectRepository, type ProjectRepository } from "./repository/memory.js";
-import { PostgresProjectRepository } from "./repository/postgres.js";
+import { Pool } from "pg";
+import { InMemoryStore } from "./repository/memory.js";
+import { PostgresStore } from "./repository/postgres.js";
 import { createProjectRouter } from "./routes/projects.js";
+import { createWorkerRouter } from "./routes/ingestions.js";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const DATABASE_URL = process.env.DATABASE_URL;
 
-let repo: ProjectRepository & { init?: () => Promise<void>; close?: () => Promise<void> };
+type Store = InMemoryStore | PostgresStore;
 
 async function main(): Promise<void> {
+  let store: Store;
   if (DATABASE_URL) {
-    const pg = new PostgresProjectRepository(DATABASE_URL);
-    await pg.init();
-    repo = pg;
+    const pool = new Pool({ connectionString: DATABASE_URL, max: 5 });
+    store = new PostgresStore(pool);
+    await store.init();
     console.log("ProjectWatch API using PostGIS repository");
   } else {
-    repo = new InMemoryProjectRepository();
+    store = new InMemoryStore();
+    await store.init();
     console.log("ProjectWatch API using in-memory repository (set DATABASE_URL for PostGIS)");
   }
 
@@ -26,7 +30,8 @@ async function main(): Promise<void> {
     res.json({ status: "ok", service: "projectwatch-api", storage: DATABASE_URL ? "postgis" : "memory" });
   });
 
-  app.use("/api/projects", createProjectRouter(repo));
+  app.use("/api/projects", createProjectRouter(store));
+  app.use("/api/ingestions", createWorkerRouter(store));
 
   app.listen(PORT, () => {
     console.log(`ProjectWatch API listening on http://localhost:${PORT}`);
@@ -34,7 +39,7 @@ async function main(): Promise<void> {
 
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.on(signal, async () => {
-      await repo.close?.();
+      await store.close();
       process.exit(0);
     });
   }

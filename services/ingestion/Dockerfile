@@ -14,6 +14,7 @@ RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 ENV PATH="/opt/venv/bin:${PATH}"
 
-COPY pipeline.py .
+COPY providers.py pipeline.py worker.py ./
 
-CMD ["python3", "pipeline.py"]
+# Worker mode by default; `python worker.py` polls the API for pending jobs.
+CMD ["python", "worker.py"]
