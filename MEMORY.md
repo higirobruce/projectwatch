@@ -25,9 +25,9 @@
 ### Phase 1 — Deliverables done
 - [x] **Repository scaffolding** (PR #1 → `dev`): monorepo, API registry, web skeleton, ingestion service, infra compose. Verified build/run/lint/typecheck on M2; ingestion Docker image builds/runs.
 - [x] **Project Intelligence Registry API — PostGIS-backed** (PR #2 → `dev`): `projects` table (GEOMETRY 4326 + JSONB milestones), pg repository with GeoJSON round-trip, auto migration on boot, Dockerized API service. Verified persistence + geometry round-trip on M2.
-- [ ] GIS boundary management + GeoServer layers
+- [x] **GIS boundary management + GeoServer layers** (PR #3 → `dev`): `infra/geoserver/provision.py` creates `projectwatch` workspace, PostGIS datastore, and publishes `projects` as WMS/WFS; `geoserver-setup` compose service auto-runs it. Verified live: layer + WMS GetMap PNG on M2. Switched GeoServer image to `kartoza/geoserver:2.25.2` (multi-arch/arm64) for smooth M2 boot.
+- [x] **Initial dashboard (MapLibre GL)** (PR #3 → `dev`): `apps/web` `/projects` page renders OSM base + project GeoJSON boundaries with popups, side registry list, optional GeoServer WMS overlay toggle. Verified `next dev` serves `/` and `/projects` (200); `next build` passes with `NODE_ENV=production` (shell had non-standard NODE_ENV — pinned in build script).
 - [ ] Satellite data integration (automated retrieval)
-- [ ] Initial dashboard (map via MapLibre GL)
 
 ---
 
@@ -55,6 +55,7 @@ See `docs/decisions.md`. Initial entries:
 ### PR history
 - **PR #1** `feature/repo-scaffold` → `dev` (merged 2026-07-08): Phase 1 repo scaffolding. Self-reviewed; build/run/lint/typecheck + Docker verified on M2.
 - **PR #2** `feature/project-registry-db` → `dev` (merged 2026-07-08): PostGIS-backed Project Registry. Self-reviewed; persistence + geometry round-trip verified on M2 + Docker.
+- **PR #3** `feature/geoserver-layers` → `dev` (merged 2026-07-08): GIS boundaries + GeoServer layers + initial MapLibre dashboard. Self-reviewed; GeoServer provisioning + WMS verified live on M2; web build/dev verified.
 
 ---
 

@@ -32,7 +32,7 @@ docs/          Phase technical docs + decisions log
 ## Local development (MacBook Air M2, 16 GB, Docker)
 
 ```bash
-# 1. Start infrastructure (PostGIS, MinIO, GeoServer)
+# 1. Start infrastructure (PostGIS, MinIO, GeoServer + auto-provisioning)
 npm run infra:up
 
 # 2. Run API + Web
@@ -40,8 +40,16 @@ npm install
 npm run dev
 ```
 
+- API: http://localhost:4000 (health at `/health`)
+- Web dashboard: http://localhost:3000 → `/projects` (map of project boundaries)
+- GeoServer: http://localhost:8080/geoserver (admin/geoserver) — publishes
+  `projectwatch:projects` as WMS/WFS automatically via the `geoserver-setup` service.
+
 Resource limits for the M2 profile are defined in `infra/docker-compose.yml`
-(PostGIS + GeoServer + MinIO kept within ~12 GB RAM budget).
+(PostGIS + GeoServer + MinIO + API kept within ~12 GB RAM budget).
+
+> Note: a local Homebrew Postgres on port 5432 can clash with the Docker
+> PostGIS mapping; the compose file maps PostGIS to host port **5433**.
 
 ## Branching & workflow
 
