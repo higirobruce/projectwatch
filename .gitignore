@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Local data / volumes
+data/
+*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
