@@ -1,6 +1,6 @@
 import Link from "next/link";
 import ProjectMap, { type MapProject } from "../components/ProjectMap";
-import { listProjects } from "../lib/projects";
+import { listProjects, listIngestions, type Ingestion } from "../lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -8,11 +8,21 @@ export const dynamic = "force-dynamic";
 const GEOSERVER_WMS =
   process.env.GEOSERVER_WMS ?? "http://localhost:8080/geoserver/projectwatch/wms";
 
+const STATUS_LABEL: Record<Ingestion["status"], string> = {
+  pending: "Queued",
+  processing: "Ingesting…",
+  done: "Ingested",
+  failed: "Failed",
+};
+
 export default async function ProjectsPage() {
   let projects: Awaited<ReturnType<typeof listProjects>> = [];
+  let ingestByProject: Record<string, Ingestion[]> = {};
   let loadError: string | null = null;
   try {
     projects = await listProjects();
+    const all = await Promise.all(projects.map((p) => listIngestions(p.id).catch(() => [])));
+    ingestByProject = Object.fromEntries(projects.map((p, i) => [p.id, all[i]!]));
   } catch {
     loadError = "Unable to reach the ProjectWatch API. Start it with `npm run dev`.";
   }
@@ -54,15 +64,28 @@ export default async function ProjectsPage() {
               <p className="muted">No projects yet. Register one via <code>POST /api/projects</code>.</p>
             ) : (
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {projects.map((p) => (
-                  <li key={p.id} style={{ marginBottom: 12, fontSize: 14 }}>
-                    <strong>{p.name}</strong>
-                    <br />
-                    <span className="muted">
-                      {p.milestones.length} milestones · {p.timelineStart.slice(0, 10)} → {p.timelineEnd.slice(0, 10)}
-                    </span>
-                  </li>
-                ))}
+                {projects.map((p) => {
+                  const ing = ingestByProject[p.id] ?? [];
+                  const latest = ing[0];
+                  return (
+                    <li key={p.id} style={{ marginBottom: 12, fontSize: 14 }}>
+                      <strong>{p.name}</strong>
+                      <br />
+                      <span className="muted">
+                        {p.milestones.length} milestones · {p.timelineStart.slice(0, 10)} → {p.timelineEnd.slice(0, 10)}
+                      </span>
+                      <br />
+                      {latest ? (
+                        <span className="muted">
+                          {STATUS_LABEL[latest.status]} · {latest.scenes.length} scene(s)
+                          {latest.acquiredAt ? ` · ${latest.acquiredAt.slice(0, 10)}` : ""}
+                        </span>
+                      ) : (
+                        <span className="muted">No ingestion yet</span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

@@ -1,97 +1,73 @@
 """
-ProjectWatch Rwanda — Satellite Image Processing Service (Phase 1 scaffold).
+Processing pipeline (Phase 1 — Satellite Data Integration).
 
-Responsibilities (foundation phase):
-  - Retrieve satellite scenes (Sentinel-1 / Sentinel-2 / Landsat) for a project boundary.
-  - Preprocess raster data (coregistration, clipping to boundary, indexing).
-  - Stage processed rasters to object storage (MinIO / S3-compatible).
-
-This module is a skeleton: it defines the pipeline interface and a minimal
-processing stub using GDAL/Rasterio so the service runs in Docker on the M2
-profile without heavy downloads. Real ingestion wiring lands in later tasks.
+For each retrieved scene: clip/reproject to the project boundary and compute a
+normalized-difference index (NDVI when NIR+Red bands are available), then stage
+the processed raster to object storage (MinIO / S3-compatible).
 """
-
 from __future__ import annotations
 
-import logging
+import os
 from dataclasses import dataclass
-from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("projectwatch.ingestion")
-
-# Avoid importing heavy native libs at module load so the service can boot
-# on constrained hardware; import lazily inside functions that need them.
-
-MINIO_ENDPOINT = "http://minio:9000"
-RAW_BUCKET = "satellite-raw"
-PROCESSED_BUCKET = "satellite-processed"
-
-
-@dataclass
-class Scene:
-    scene_id: str
-    source: str  # sentinel-1 | sentinel-2 | landsat
-    geometry_wkt: str
-    uri: str
+import rasterio
+from rasterio.mask import mask
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 
 @dataclass
 class ProcessedScene:
     scene_id: str
-    output_uri: str
-    width: int
-    height: int
+    acquired_at: str
+    source: str
+    raster_key: str
+    local_path: str
 
 
-def retrieve_scenes(boundary_wkt: str, source: str = "sentinel-2") -> list[Scene]:
-    """Search and download scenes intersecting the project boundary.
+def preprocess(scene, boundary_geojson: dict, workdir: str, bucket: str) -> ProcessedScene:
+    """Clip scene to boundary, compute NDVI, write a processed GeoTIFF."""
+    os.makedirs(workdir, exist_ok=True)
+    out_path = os.path.join(workdir, f"{scene.scene_id}_proc.tif")
 
-    Stub: in production this queries a catalogue (e.g. STAC / Copernicus)
-    and downloads to local cache. Returns an empty list until wired.
-    """
-    logger.info("retrieve_scenes stub for %s over %s", source, boundary_wkt[:40])
-    return []
-
-
-def preprocess(scene: Scene, boundary_wkt: str, workdir: Path) -> ProcessedScene:
-    """Clip + reproject a scene to the project boundary using GDAL/Rasterio.
-
-    Lazily imports rasterio/gdal to keep boot light on the M2 profile.
-    """
-    from osgeo import gdal  # noqa: F401  (ensures GDAL present in image)
-    import rasterio
-    from rasterio.mask import mask
-
-    workdir.mkdir(parents=True, exist_ok=True)
-    logger.info("preprocess stub for %s", scene.scene_id)
-
-    # Placeholder dimensions; real clip/mask logic replaces this.
-    with rasterio.open(scene.uri) as ds:
-        processed = ProcessedScene(
-            scene_id=scene.scene_id,
-            output_uri=str(workdir / f"{scene.scene_id}.tif"),
-            width=ds.width,
-            height=ds.height,
+    with rasterio.open(scene.assets["multiband"]) as src:
+        # Clip to the project polygon.
+        geoms = [{"type": "Polygon", "coordinates": boundary_geojson["coordinates"]}]
+        clipped, clipped_transform = mask(src, geoms, crop=True, all_touched=True)
+        # Reproject to Web Mercator for broad map compatibility if needed.
+        dst_crs = "EPSG:4326"
+        transform, width, height = calculate_default_transform(
+            src.crs, dst_crs, src.width, src.height, *src.bounds
         )
-    return processed
+        profile = src.profile
+        profile.update({"crs": dst_crs, "transform": transform, "width": width, "height": height})
 
+        with rasterio.open(out_path, "w", **profile) as dst:
+            for b in range(1, src.count + 1):
+                reproject(
+                    source=rasterio.band(src, b),
+                    destination=rasterio.band(dst, b),
+                    src_transform=clipped_transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    dst_crs=dst_crs,
+                    resampling=Resampling.nearest,
+                )
+            # Compute NDVI from band 4 (NIR) / band 1 (Red) if present.
+            if src.count >= 4:
+                nir = clipped[3].astype("float32")
+                red = clipped[0].astype("float32")
+                denom = nir + red
+                ndvi = (nir - red) / (denom + 1e-6)
+                ndvi_profile = profile.copy()
+                ndvi_profile.update({"count": 1, "dtype": "float32", "nodata": -9999})
+                with rasterio.open(out_path.replace(".tif", "_ndvi.tif"), "w", **ndvi_profile) as nd:
+                    nd.write(ndvi, 1)
 
-def stage_to_object_storage(processed: ProcessedScene, bucket: str = PROCESSED_BUCKET) -> str:
-    """Upload processed raster to MinIO/S3. Stub until boto3 wiring lands."""
-    logger.info("stage_to_object_storage stub -> %s/%s", bucket, processed.scene_id)
-    return processed.output_uri
-
-
-def run_pipeline(boundary_wkt: str, source: str = "sentinel-2") -> list[ProcessedScene]:
-    scenes = retrieve_scenes(boundary_wkt, source)
-    results: list[ProcessedScene] = []
-    for scene in scenes:
-        processed = preprocess(scene, boundary_wkt, Path("/tmp/projectwatch"))
-        stage_to_object_storage(processed)
-        results.append(processed)
-    return results
-
-
-if __name__ == "__main__":
-    logger.info("ProjectWatch ingestion service ready (scaffold).")
+    raster_key = f"{bucket}/{scene.scene_id}_proc.tif"
+    return ProcessedScene(
+        scene_id=scene.scene_id,
+        acquired_at=scene.acquired_at,
+        source=scene.source,
+        raster_key=raster_key,
+        local_path=out_path,
+    )

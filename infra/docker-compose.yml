@@ -57,6 +57,8 @@ services:
         reservations:
           memory: 512M
     restart: unless-stopped
+    networks:
+      - pw-net
 
   geoserver:
     image: kartoza/geoserver:2.25.2
@@ -125,6 +127,35 @@ services:
           memory: 1G
         reservations:
           memory: 512M
+    restart: unless-stopped
+
+  ingestion:
+    build:
+      context: ../services/ingestion
+      dockerfile: Dockerfile
+    container_name: pw-ingestion
+    environment:
+      API_URL: http://api:4000
+      PROVIDER: mock
+      INGESTION_SOURCE: sentinel-2
+      SCENE_COUNT: "2"
+      POLL_INTERVAL: "10"
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: satellite-processed
+    depends_on:
+      - api
+      - minio
+    networks:
+      - pw-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          memory: 1G
     restart: unless-stopped
 
 networks:
