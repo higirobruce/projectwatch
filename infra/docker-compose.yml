@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: projectwatch
       POSTGRES_DB: projectwatch
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgis-data:/var/lib/postgresql/data
     healthcheck:
@@ -29,6 +29,8 @@ services:
         reservations:
           memory: 1G
     restart: unless-stopped
+    networks:
+      - pw-net
 
   minio:
     image: minio/minio:latest
@@ -77,6 +79,36 @@ services:
         reservations:
           memory: 2G
     restart: unless-stopped
+    networks:
+      - pw-net
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    container_name: pw-api
+    environment:
+      DATABASE_URL: postgres://projectwatch:projectwatch@postgis:5432/projectwatch
+      PORT: "4000"
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgis:
+        condition: service_healthy
+    networks:
+      - pw-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+
+networks:
+  pw-net:
+    driver: bridge
 
 volumes:
   postgis-data:
