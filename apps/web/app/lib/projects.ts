@@ -2,6 +2,10 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  boundary: {
+    type: "Polygon";
+    coordinates: [number, number][][];
+  };
   timelineStart: string;
   timelineEnd: string;
   milestones: { name: string; plannedDate: string; status: string }[];

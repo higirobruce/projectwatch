@@ -59,7 +59,7 @@ services:
     restart: unless-stopped
 
   geoserver:
-    image: geoserver:2.25.2
+    image: kartoza/geoserver:2.25.2
     container_name: pw-geoserver
     environment:
       GEOSERVER_ADMIN_USER: admin
@@ -81,6 +81,27 @@ services:
     restart: unless-stopped
     networks:
       - pw-net
+
+  geoserver-setup:
+    image: python:3.12-slim
+    container_name: pw-geoserver-setup
+    depends_on:
+      geoserver:
+        condition: service_started
+    environment:
+      GEOSERVER_URL: http://geoserver:8080/geoserver
+      GEOSERVER_USER: admin
+      GEOSERVER_PASSWORD: geoserver
+      PG_HOST: postgis
+      PG_DB: projectwatch
+      PG_USER: projectwatch
+      PG_PASS: projectwatch
+    volumes:
+      - ./geoserver/provision.py:/provision.py
+    command: sh -c "pip install --quiet requests && python3 /provision.py"
+    networks:
+      - pw-net
+    restart: "no"
 
   api:
     build:
