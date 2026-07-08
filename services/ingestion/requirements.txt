@@ -1,0 +1,5 @@
+# ProjectWatch Rwanda ingestion service requirements.
+# GDAL/Rasterio are provided system-wide by the OSGeo base image.
+rasterio>=1.3.0
+boto3>=1.34.0
+python-dotenv>=1.0.0

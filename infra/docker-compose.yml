@@ -1,0 +1,84 @@
+# ProjectWatch Rwanda — local infrastructure (M2 / 16 GB Docker profile)
+#
+# Single-node Compose: PostGIS (vectors), MinIO (raster object storage),
+# GeoServer (OGC services). Resource limits keep the stack within ~12 GB
+# RAM budget per AGENTS.md §4 constraints.
+
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: pw-postgis
+    environment:
+      POSTGRES_USER: projectwatch
+      POSTGRES_PASSWORD: projectwatch
+      POSTGRES_DB: projectwatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U projectwatch -d projectwatch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          memory: 1G
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: pw-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+
+  geoserver:
+    image: geoserver:2.25.2
+    container_name: pw-geoserver
+    environment:
+      GEOSERVER_ADMIN_USER: admin
+      GEOSERVER_ADMIN_PASSWORD: geoserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgis:
+        condition: service_healthy
+    volumes:
+      - geoserver-data:/opt/geoserver_data
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          memory: 2G
+    restart: unless-stopped
+
+volumes:
+  postgis-data:
+  minio-data:
+  geoserver-data:
