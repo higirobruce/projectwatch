@@ -38,8 +38,9 @@
 - `projectwatch.html` — concept proposal (v1.0)
 - `implementation-plan.html` — phased implementation plan (v1.0)
 - `AGENTS.md` — governance, branching, memory, tech stack
-- `design-system.html` — Paper & Ink design system (used by all HTML docs)
-- `docs/phase-1-foundation.md` — Phase 1 technical doc (to be created)
+- `design-system.html` — Paper & Ink design system (narrative docs)
+- `design-system-space.html` — ProjectWatch Space design system (web app UI; dark + light view)
+- `docs/phase-1-foundation.md` — Phase 1 technical doc (done)
 - `docs/phase-2-intelligence.md` — Phase 2 technical doc (to be created)
 - `docs/phase-3-pilot.md` — Phase 3 technical doc (to be created)
 - `docs/decisions.md` — decision log
