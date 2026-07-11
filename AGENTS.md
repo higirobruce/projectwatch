@@ -82,8 +82,10 @@ Implement strictly within this stack. Do not introduce new primary technologies 
 
 ## 5. Design & Documentation Conventions
 
-- UI/HTML artifacts follow the **Paper & Ink design system** (`design-system.html` tokens: `--paper`, `--ink`, `--azure`, serif display headings, mono eyebrow labels).
-- All narrative docs (proposal, plan, phase docs) are standalone HTML using that system.
+Two design systems, by artifact type:
+
+- **Narrative docs (proposal, plan, phase docs, MEMORY/decisions):** use the **Paper & Ink** design system (`design-system.html` — `--paper`, `--ink`, `--azure`, serif display headings, mono eyebrow labels).
+- **Application UI (web app: dashboard, intelligence UI, AI assistant):** use the **ProjectWatch Space** design system (`design-system-space.html`) — a satellite ground-station / orbital HUD. Mostly **dark** (deep space) with a **light optical-review view** (`[data-theme="light"]`). Tokens: `--space-*`, `--aurora` (primary signal), `--violet` (spectral), `--risk-green/amber/red` (project health), mono display for telemetry. Default theme is dark; the light view is for daylight/optical review.
 - Code style: TypeScript strict mode; Python typed where practical; follow existing repo conventions once code exists.
 
 ---

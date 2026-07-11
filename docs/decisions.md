@@ -29,6 +29,16 @@
 
 ---
 
+## 2026-07-08 — Two design systems (Paper & Ink vs ProjectWatch Space)
+
+- **Decision:** Use **Paper & Ink** for narrative/docs HTML (proposal, plan, phase docs, MEMORY/decisions) and **ProjectWatch Space** (dark, with a light optical view) for the application UI (web dashboard, intelligence UI, assistant). Documented in `design-system-space.html`; referenced from AGENTS.md §5.
+- **Why:** The user wanted the app UI to have an exotic, satellite/space look (mostly dark, light review mode), distinct from the calm documentation system. Keeping Paper & Ink for docs preserves the established narrative style.
+- **Alternatives rejected:**
+  - Single Paper & Ink system for everything — too plain for the "orbital HUD" app intent.
+  - Only a dark theme — user explicitly wanted a light optical-review variant.
+
+---
+
 <!-- New decisions go above this line, newest first. Format:
 
 ## YYYY-MM-DD — <title>
