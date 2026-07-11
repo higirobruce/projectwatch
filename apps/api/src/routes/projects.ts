@@ -55,6 +55,18 @@ export function createProjectRouter(store: Store): Router {
     res.json({ count: analyses.length, analyses });
   });
 
+  // --- Ground truth validation (Phase 3) ---
+
+  router.get("/:id/ground-truths", async (req, res) => {
+    const project = await repo.get(req.params.id);
+    if (!project) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    const truths = await store.groundTruths.listByProject(project.id);
+    res.json({ count: truths.length, groundTruths: truths });
+  });
+
   // --- Satellite ingestion (Phase 1) ---
   router.post("/:id/ingest", async (req, res) => {
     const project = await repo.get(req.params.id);

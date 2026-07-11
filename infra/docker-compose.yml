@@ -179,6 +179,27 @@ services:
           memory: 512M
     restart: unless-stopped
 
+  scheduler:
+    build:
+      context: ../services/scheduler
+      dockerfile: Dockerfile
+    container_name: pw-scheduler
+    environment:
+      API_URL: http://api:4000
+      SCHEDULE_INTERVAL: "21600"
+    depends_on:
+      - api
+    networks:
+      - pw-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
+    restart: unless-stopped
+
 networks:
   pw-net:
     driver: bridge

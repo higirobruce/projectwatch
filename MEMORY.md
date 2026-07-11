@@ -6,7 +6,7 @@
 
 ## Status
 
-- **Phase:** 2 — Intelligence (CLOSED · gate met · doc written)
+- **Phase:** 3 — Pilot (in progress — seed data, validation, scheduling, alerting built; partner data needed to close)
 - **Branch:** `dev` ✓ (main ✓) — feature branches off `dev`
 - **Last updated:** 2026-07-11
 - **MVP target:** Road construction monitoring
@@ -20,7 +20,7 @@
 |-------|------|--------|------|
 | 1 — Foundation (0–3 mo) | Registry, GIS, ingestion, dashboard | ✅ Closed | Live map + automated ingestion demo |
 | 2 — Intelligence (3–6 mo) | Change detection, scoring, reporting | ✅ Closed | Measurable change score vs. ground truth |
-| 3 — Pilot (6–9 mo) | Real projects, validation, feedback | ⬜ Not started | ≥ 5 projects monitored + feedback report |
+| 3 — Pilot (6–9 mo) | Real projects, validation, feedback | 🔵 In progress | ≥ 5 projects monitored + feedback report |
 
 ### Phase 1 — Deliverables done
 - [x] **Repository scaffolding** (PR #1 → `dev`): monorepo, API registry, web skeleton, ingestion service, infra compose. Verified build/run/lint/typecheck on M2; ingestion Docker image builds/runs.
@@ -39,6 +39,15 @@
 
 **Phase 2 gate MET**: mock change detection engine produces scores + risk; end-to-end API → worker → dashboard verified on M2. Phase 2 technical doc: `docs/phase-2-intelligence.md` written.
 
+### Phase 3 — Deliverables done
+- [x] **Seed data** (PR #7 → `dev`): `004_seed_projects.sql` — 5 realistic Rwandan road projects with boundaries, milestones, and statuses. Auto-applied idempotently on API boot.
+- [x] **Ground truth validation** (PR #7 → `dev`): `005_ground_truths.sql` + domain types + Postgres/in-memory repos + routes (`POST /api/ground-truths`, `GET /api/projects/:id/ground-truths`, `GET /api/ground-truths/by-analysis/:id`). Dashboard includes `GroundTruthForm` component and AI vs. field comparison column.
+- [x] **Scheduled analysis** (PR #7 → `dev`): `services/scheduler/worker.py` polls projects every 6h, triggers analysis for those with ingested scenes. Runs as `pw-scheduler` Docker container.
+- [x] **Alerting** (PR #7 → `dev`): Intelligence worker posts to configurable `ALERT_WEBHOOK_URL` when risk is amber/red. Payload includes project name, risk, change score, reason.
+- [x] **Infrastructure**: scheduler service in `docker-compose.yml` (256 MB / 0.5 CPU). Docker image built/verified.
+
+**Phase 3 gate** (≥ 5 projects monitored ≥ 8 weeks + feedback report) requires partner agency data and stakeholder engagement — the engineering tooling is ready.
+
 ---
 
 ## Key Documents
@@ -50,7 +59,7 @@
 - `design-system-space.html` — ProjectWatch Space design system (web app UI; dark + light view)
 - `docs/phase-1-foundation.md` — Phase 1 technical doc (done)
 - `docs/phase-2-intelligence.md` — Phase 2 technical doc (done)
-- `docs/phase-3-pilot.md` — Phase 3 technical doc (to be created)
+- `docs/phase-3-pilot.md` — Phase 3 technical doc (done — engineering foundation)
 - `docs/decisions.md` — decision log
 
 ---
@@ -70,6 +79,7 @@ See `docs/decisions.md`. Initial entries:
 - **PR #4** `feature/satellite-ingestion` → `dev` (merged 2026-07-08): Automated satellite ingestion. Self-reviewed; full stack (postgis+minio+api+ingestion) verified on M2 — trigger → 2 scenes retrieved → MinIO staged → job done. **Phase 1 CLOSED** — technical doc at `docs/phase-1-foundation.md`.
 - **PR #5** `feature/design-system-space` → `dev` (merged 2026-07-08): ProjectWatch Space design system + AGENTS.md/conventions update.
 - **PR #6** `feature/phase2-intelligence` → `dev` (merged 2026-07-11): Phase 2 intelligence layer — analysis API, Python change-detection engine/worker, Mission Control dashboard (Space theme), Docker service. Self-reviewed; build (API + web + Docker) verified on M2. **Phase 2 CLOSED** — technical doc at `docs/phase-2-intelligence.md`.
+- **PR #7** `feature/phase3-pilot` → `dev` (merged 2026-07-11): Phase 3 pilot tooling — seed data (5 Rwandan projects), ground truth validation (API + dashboard form + AI vs. field comparison), scheduled analysis (6h cron), alerting (webhook on amber/red), Docker scheduler service. Self-reviewed; build (API + web + Docker) verified on M2.
 
 ---
 

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Project, ProjectCreate } from "../domain/project.js";
 import type { Ingestion, IngestionPatch } from "../domain/ingestion.js";
 import type { Analysis, AnalysisPatch } from "../domain/analysis.js";
+import type { GroundTruth, GroundTruthCreate } from "../domain/ground_truth.js";
 
 /**
  * In-memory stores for Phase 1 scaffolding / local dev without PostGIS.
@@ -119,10 +120,37 @@ export class InMemoryAnalysisRepository {
   }
 }
 
+export class InMemoryGroundTruthRepository {
+  private readonly truths = new Map<string, GroundTruth>();
+
+  async create(projectId: string, input: GroundTruthCreate): Promise<GroundTruth> {
+    const now = new Date().toISOString();
+    const truth: GroundTruth = {
+      id: randomUUID(),
+      analysisId: input.analysisId,
+      projectId,
+      observedChange: input.observedChange,
+      observedProgress: input.observedProgress,
+      notes: input.notes,
+      recordedBy: input.recordedBy,
+      recordedAt: now,
+    };
+    this.truths.set(truth.id, truth);
+    return truth;
+  }
+  async listByProject(projectId: string): Promise<GroundTruth[]> {
+    return [...this.truths.values()].filter((t) => t.projectId === projectId);
+  }
+  async listByAnalysis(analysisId: string): Promise<GroundTruth[]> {
+    return [...this.truths.values()].filter((t) => t.analysisId === analysisId);
+  }
+}
+
 export class InMemoryStore {
   readonly projects = new InMemoryProjectRepository();
   readonly ingestions = new InMemoryIngestionRepository();
   readonly analyses = new InMemoryAnalysisRepository();
+  readonly groundTruths = new InMemoryGroundTruthRepository();
   async init(): Promise<void> {}
   async close(): Promise<void> {}
 }

@@ -47,6 +47,15 @@
   - Inline Node.js computation — couples CV logic to the API process; harder to iterate Python models.
   - Event-driven worker (queue) — adds infrastructure complexity (Redis/RabbitMQ) not justified for MVP.
 
+## 2026-07-11 — Phase 3 pilot engineering
+
+- **Decision:** Build seed data, ground truth validation, scheduled analysis, and alerting as engineering foundations for the pilot phase. Use separate Python scheduler service (same polling pattern as ingestion/intelligence) rather than adding cron to the API or using a job queue.
+- **Why:** Seed data makes the dashboard immediately useful for demo without requiring external partner boundaries. Ground truth validation closes the accuracy feedback loop — field observers record observations, dashboard compares AI vs. ground truth. Scheduled analysis (default 6h) mimics real monitoring cadence. Alerting via webhook is the simplest integration point for Slack/email/Teams.
+- **Alternatives rejected:**
+  - Inline cron in the API Node.js process — mixes concerns; harder to scale.
+  - Full job queue (Redis/Bull) — unnecessary for MVP; polling pattern proven in Phases 1–2.
+  - Database-level scheduling (pg_cron) — requires Postgres extension dependency.
+
 <!-- New decisions go above this line, newest first. Format:
 
 ## YYYY-MM-DD — <title>
