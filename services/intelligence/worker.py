@@ -16,6 +16,7 @@ import requests
 
 API_URL = os.environ.get("API_URL", "http://localhost:4000").rstrip("/")
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "15"))
+ALERT_WEBHOOK_URL = os.environ.get("ALERT_WEBHOOK_URL", "")
 
 
 def _patch(analysis_id: str, payload: dict) -> None:
@@ -41,13 +42,40 @@ def process_job(job: dict) -> None:
     result["status"] = "done"
     _patch(analysis_id, result)
 
+    risk = result.get("risk", "")
     print(
         f"[intel] analysis {analysis_id}: "
         f"change={result.get('changeScore'):.0%} "
         f"confidence={result.get('confidence'):.0%} "
-        f"risk={result.get('risk')} "
+        f"risk={risk} "
         f"progress={result.get('progressPct'):.0f}%"
     )
+
+    if risk in ("amber", "red") and ALERT_WEBHOOK_URL:
+        _send_alert(project, analysis_id, result)
+
+
+def _send_alert(project: dict, analysis_id: str, result: dict) -> None:
+    """POST an alert payload to the configured webhook URL."""
+    try:
+        payload = {
+            "event": "risk_alert",
+            "project": {"id": project.get("id"), "name": project.get("name")},
+            "analysis": {
+                "id": analysis_id,
+                "changeScore": result.get("changeScore"),
+                "confidence": result.get("confidence"),
+                "progressPct": result.get("progressPct"),
+                "risk": result.get("risk"),
+                "reason": result.get("reason"),
+            },
+            "message": f"[ProjectWatch] {project.get('name')} — risk is {result.get('risk').upper()}. {result.get('reason', '')}",
+        }
+        r = requests.post(ALERT_WEBHOOK_URL, json=payload, timeout=15)
+        r.raise_for_status()
+        print(f"[intel] alert sent for {analysis_id} (risk={result.get('risk')})")
+    except requests.RequestException as e:
+        print(f"[intel] alert failed for {analysis_id}: {e}", file=sys.stderr)
 
 
 def run() -> None:

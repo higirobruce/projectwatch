@@ -5,6 +5,7 @@ import { PostgresStore } from "./repository/postgres.js";
 import { createProjectRouter } from "./routes/projects.js";
 import { createWorkerRouter } from "./routes/ingestions.js";
 import { createAnalysisWorkerRouter } from "./routes/analyses.js";
+import { createGroundTruthRouter } from "./routes/ground_truths.js";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -34,6 +35,7 @@ async function main(): Promise<void> {
   app.use("/api/projects", createProjectRouter(store));
   app.use("/api/ingestions", createWorkerRouter(store));
   app.use("/api/analyses", createAnalysisWorkerRouter(store));
+  app.use("/api/ground-truths", createGroundTruthRouter(store));
 
   app.listen(PORT, () => {
     console.log(`ProjectWatch API listening on http://localhost:${PORT}`);

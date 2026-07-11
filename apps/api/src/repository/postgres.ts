@@ -6,6 +6,7 @@ import { Pool } from "pg";
 import type { Milestone, Project, ProjectCreate } from "../domain/project.js";
 import type { Ingestion, IngestionPatch, IngestionScene } from "../domain/ingestion.js";
 import type { Analysis, AnalysisPatch } from "../domain/analysis.js";
+import type { GroundTruth, GroundTruthCreate } from "../domain/ground_truth.js";
 
 /**
  * PostGIS-backed repositories (Phase 1).
@@ -270,15 +271,77 @@ export class PostgresAnalysisRepository {
   }
 }
 
+interface GroundTruthRow {
+  id: string;
+  analysis_id: string;
+  project_id: string;
+  observed_change: number | null;
+  observed_progress: number | null;
+  notes: string | null;
+  recorded_by: string | null;
+  recorded_at: string;
+}
+
+function rowToGroundTruth(row: GroundTruthRow): GroundTruth {
+  return {
+    id: row.id,
+    analysisId: row.analysis_id,
+    projectId: row.project_id,
+    observedChange: row.observed_change ?? undefined,
+    observedProgress: row.observed_progress ?? undefined,
+    notes: row.notes ?? undefined,
+    recordedBy: row.recorded_by ?? undefined,
+    recordedAt: new Date(row.recorded_at).toISOString(),
+  };
+}
+
+export class PostgresGroundTruthRepository {
+  constructor(private readonly pool: Pool) {}
+
+  async create(projectId: string, input: GroundTruthCreate): Promise<GroundTruth> {
+    const { rows } = await this.pool.query<GroundTruthRow>(
+      `INSERT INTO ground_truths (id, analysis_id, project_id, observed_change, observed_progress, notes, recorded_by)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6) RETURNING *`,
+      [
+        input.analysisId,
+        projectId,
+        input.observedChange ?? null,
+        input.observedProgress ?? null,
+        input.notes ?? null,
+        input.recordedBy ?? null,
+      ],
+    );
+    return rowToGroundTruth(rows[0]!);
+  }
+
+  async listByProject(projectId: string): Promise<GroundTruth[]> {
+    const { rows } = await this.pool.query<GroundTruthRow>(
+      `SELECT * FROM ground_truths WHERE project_id = $1 ORDER BY recorded_at DESC`,
+      [projectId],
+    );
+    return rows.map(rowToGroundTruth);
+  }
+
+  async listByAnalysis(analysisId: string): Promise<GroundTruth[]> {
+    const { rows } = await this.pool.query<GroundTruthRow>(
+      `SELECT * FROM ground_truths WHERE analysis_id = $1 ORDER BY recorded_at DESC`,
+      [analysisId],
+    );
+    return rows.map(rowToGroundTruth);
+  }
+}
+
 export class PostgresStore {
   readonly projects: PostgresProjectRepository;
   readonly ingestions: PostgresIngestionRepository;
   readonly analyses: PostgresAnalysisRepository;
+  readonly groundTruths: PostgresGroundTruthRepository;
 
   constructor(private readonly pool: Pool) {
     this.projects = new PostgresProjectRepository(pool);
     this.ingestions = new PostgresIngestionRepository(pool);
     this.analyses = new PostgresAnalysisRepository(pool);
+    this.groundTruths = new PostgresGroundTruthRepository(pool);
   }
 
   async init(): Promise<void> {

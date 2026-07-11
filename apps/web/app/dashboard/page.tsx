@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { listProjects, type Project } from "../lib/projects";
 import { listAnalyses, type Analysis } from "../lib/analyses";
+import { listGroundTruths, type GroundTruth } from "../lib/ground_truths";
 import { RunAnalysisButton } from "./RunAnalysisButton";
+import { GroundTruthForm } from "./GroundTruthForm";
 
 export const dynamic = "force-dynamic";
 
@@ -34,17 +36,33 @@ function ProgressBar({ pct }: { pct: number | null | undefined }) {
   );
 }
 
+function ValidationDiff({ ai, observed }: { ai?: number | null; observed?: number | null }) {
+  if (ai == null && observed == null) return <span className="muted">—</span>;
+  const aiVal = ai ?? 0;
+  const obsVal = observed ?? 0;
+  const diff = Math.abs(aiVal - obsVal);
+  const ok = diff < 0.15;
+  return (
+    <span className="caption" style={{ color: ok ? "var(--risk-green)" : "var(--risk-amber)" }}>
+      AI: {(aiVal * 100).toFixed(0)}% &nbsp; Field: {(obsVal * 100).toFixed(0)}%
+    </span>
+  );
+}
+
 export default async function DashboardPage() {
   let projects: Project[] = [];
   let analysesByProject: Record<string, Analysis[]> = {};
+  let groundTruthsByProject: Record<string, GroundTruth[]> = {};
   let error: string | null = null;
 
   try {
     projects = await listProjects();
-    const allAnalyses = await Promise.all(
-      projects.map((p) => listAnalyses(p.id).catch(() => [] as Analysis[])),
-    );
+    const [allAnalyses, allGroundTruths] = await Promise.all([
+      Promise.all(projects.map((p) => listAnalyses(p.id).catch(() => [] as Analysis[]))),
+      Promise.all(projects.map((p) => listGroundTruths(p.id).catch(() => [] as GroundTruth[]))),
+    ]);
     analysesByProject = Object.fromEntries(projects.map((p, i) => [p.id, allAnalyses[i]!]));
+    groundTruthsByProject = Object.fromEntries(projects.map((p, i) => [p.id, allGroundTruths[i]!]));
   } catch {
     error = "Unable to reach the ProjectWatch API. Start it with `npm run dev`.";
   }
@@ -113,12 +131,13 @@ export default async function DashboardPage() {
                 <th>Confidence</th>
                 <th>Progress</th>
                 <th>Reason</th>
+                <th>Validation</th>
               </tr>
             </thead>
             <tbody>
               {projects.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", color: "var(--ink-3)", padding: 32 }}>
+                  <td colSpan={8} style={{ textAlign: "center", color: "var(--ink-3)", padding: 32 }}>
                     No projects registered. Create one via <code>POST /api/projects</code> or the home page.
                   </td>
                 </tr>
@@ -150,6 +169,18 @@ export default async function DashboardPage() {
                       <td>
                         <span className="caption">{latest?.reason ?? "—"}</span>
                         {latest?.error && <span className="caption" style={{ color: "var(--risk-red)" }}>{latest.error}</span>}
+                      </td>
+                      <td>
+                        {(() => {
+                          const gts = groundTruthsByProject[p.id] ?? [];
+                          const gt = gts[0];
+                          return gt ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                              <ValidationDiff ai={latest?.changeScore} observed={gt.observedChange} />
+                              {gt.notes && <span className="caption">{gt.notes.slice(0, 60)}</span>}
+                            </div>
+                          ) : <span className="muted">—</span>;
+                        })()}
                       </td>
                     </tr>
                   );
@@ -184,19 +215,33 @@ export default async function DashboardPage() {
                             <th>Change</th>
                             <th>Confidence</th>
                             <th>Progress</th>
+                            <th>Validation</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {analyses.map((a) => (
-                            <tr key={a.id}>
-                              <td className="caption">{new Date(a.createdAt).toLocaleDateString()}</td>
-                              <td><StatusTag status={a.status} /></td>
-                              <td><RiskBadge risk={a.risk} /></td>
-                              <td>{a.changeScore != null ? `${(a.changeScore * 100).toFixed(0)}%` : "—"}</td>
-                              <td>{a.confidence != null ? `${(a.confidence * 100).toFixed(0)}%` : "—"}</td>
-                              <td><ProgressBar pct={a.progressPct} /></td>
-                            </tr>
-                          ))}
+                          {analyses.map((a) => {
+                            const gts = (groundTruthsByProject[p.id] ?? []).filter((g) => g.analysisId === a.id);
+                            return (
+                              <tr key={a.id}>
+                                <td className="caption">{new Date(a.createdAt).toLocaleDateString()}</td>
+                                <td><StatusTag status={a.status} /></td>
+                                <td><RiskBadge risk={a.risk} /></td>
+                                <td>{a.changeScore != null ? `${(a.changeScore * 100).toFixed(0)}%` : "—"}</td>
+                                <td>{a.confidence != null ? `${(a.confidence * 100).toFixed(0)}%` : "—"}</td>
+                                <td><ProgressBar pct={a.progressPct} /></td>
+                                <td>
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    {gts.map((gt) => (
+                                      <div key={gt.id} style={{ fontSize: "var(--t-12)" }}>
+                                        <ValidationDiff ai={a.changeScore} observed={gt.observedChange} />
+                                      </div>
+                                    ))}
+                                    <GroundTruthForm analysisId={a.id} projectId={p.id} />
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     )}
