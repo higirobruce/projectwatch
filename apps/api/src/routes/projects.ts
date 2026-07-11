@@ -33,6 +33,28 @@ export function createProjectRouter(store: Store): Router {
     res.status(201).json(project);
   });
 
+  // --- Analysis (Phase 2 — Intelligence) ---
+
+  router.post("/:id/analyze", async (req, res) => {
+    const project = await repo.get(req.params.id);
+    if (!project) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    const analysis = await store.analyses.create(project.id);
+    res.status(202).json(analysis);
+  });
+
+  router.get("/:id/analyses", async (req, res) => {
+    const project = await repo.get(req.params.id);
+    if (!project) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+    const analyses = await store.analyses.listByProject(project.id);
+    res.json({ count: analyses.length, analyses });
+  });
+
   // --- Satellite ingestion (Phase 1) ---
   router.post("/:id/ingest", async (req, res) => {
     const project = await repo.get(req.params.id);

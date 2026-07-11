@@ -39,6 +39,14 @@
 
 ---
 
+## 2026-07-11 — Intelligence engine architecture (Phase 2)
+
+- **Decision:** Build a mock change-detection engine in Python (`services/intelligence/engine.py`) with a stable `analyze_project(project, scenes) -> dict` contract, polled by a worker that reports via `PATCH /api/analyses/:id`. The mock simulates changeScore, confidence, progressPct, and risk (green/amber/red) using scene count + milestone status. The real CV pipeline can be swapped in without changing the API or worker.
+- **Why:** Separates the intelligence pipeline into an isolated Python service (same pattern as ingestion) with a clean contract, making it easy to replace the mock with real models. Polling pattern matches the existing ingestion worker.
+- **Alternatives rejected:**
+  - Inline Node.js computation — couples CV logic to the API process; harder to iterate Python models.
+  - Event-driven worker (queue) — adds infrastructure complexity (Redis/RabbitMQ) not justified for MVP.
+
 <!-- New decisions go above this line, newest first. Format:
 
 ## YYYY-MM-DD — <title>

@@ -6,9 +6,9 @@
 
 ## Status
 
-- **Phase:** 1 — Foundation (CLOSED · gate met · doc written); Phase 2 not started
+- **Phase:** 2 — Intelligence (CLOSED · gate met · doc written)
 - **Branch:** `dev` ✓ (main ✓) — feature branches off `dev`
-- **Last updated:** 2026-07-08
+- **Last updated:** 2026-07-11
 - **MVP target:** Road construction monitoring
 - **Hardware profile:** MacBook Air, M2, 16 GB RAM, Docker
 
@@ -18,8 +18,8 @@
 
 | Phase | Goal | Status | Gate |
 |-------|------|--------|------|
-| 1 — Foundation (0–3 mo) | Registry, GIS, ingestion, dashboard | 🔵 In progress | Live map + automated ingestion demo |
-| 2 — Intelligence (3–6 mo) | Change detection, scoring, reporting | ⬜ Not started | Measurable change score vs. ground truth |
+| 1 — Foundation (0–3 mo) | Registry, GIS, ingestion, dashboard | ✅ Closed | Live map + automated ingestion demo |
+| 2 — Intelligence (3–6 mo) | Change detection, scoring, reporting | ✅ Closed | Measurable change score vs. ground truth |
 | 3 — Pilot (6–9 mo) | Real projects, validation, feedback | ⬜ Not started | ≥ 5 projects monitored + feedback report |
 
 ### Phase 1 — Deliverables done
@@ -31,6 +31,14 @@
 
 **Phase 1 gate MET**: live map (dashboard) + automated ingestion demo both verified on M2. Phase 1 technical doc: `docs/phase-1-foundation.md` written.
 
+### Phase 2 — Deliverables done
+- [x] **Design system split** (PR #5 → `dev`): Created `design-system-space.html` (ProjectWatch Space — dark/light HUD); updated AGENTS.md §5 to split conventions between Paper & Ink (docs) and Space (app UI); recorded in `docs/decisions.md`.
+- [x] **Analysis API + intelligence engine** (PR #6 → `dev`): `analyses` table + domain types (zod schemas) + Postgres + in-memory repositories. Routes: enqueue (`POST /:id/analyze`), list (`GET /:id/analyses`), worker pending/patch (`GET /pending`, `PATCH /:id`). Python intelligence worker polls API, runs mock change-detection engine, reports results.
+- [x] **Mission Control dashboard** (PR #6 → `dev`): Space-themed `/dashboard` with stats grid, risk badges (green/amber/red), progress bars, per-project analysis history table, "Run analysis" button. Coexists with Paper & Ink pages (`/`, `/projects`).
+- [x] **Infrastructure**: intelligence service in `docker-compose.yml`; Docker image built/verified.
+
+**Phase 2 gate MET**: mock change detection engine produces scores + risk; end-to-end API → worker → dashboard verified on M2. Phase 2 technical doc: `docs/phase-2-intelligence.md` written.
+
 ---
 
 ## Key Documents
@@ -41,7 +49,7 @@
 - `design-system.html` — Paper & Ink design system (narrative docs)
 - `design-system-space.html` — ProjectWatch Space design system (web app UI; dark + light view)
 - `docs/phase-1-foundation.md` — Phase 1 technical doc (done)
-- `docs/phase-2-intelligence.md` — Phase 2 technical doc (to be created)
+- `docs/phase-2-intelligence.md` — Phase 2 technical doc (done)
 - `docs/phase-3-pilot.md` — Phase 3 technical doc (to be created)
 - `docs/decisions.md` — decision log
 
@@ -60,6 +68,8 @@ See `docs/decisions.md`. Initial entries:
 - **PR #2** `feature/project-registry-db` → `dev` (merged 2026-07-08): PostGIS-backed Project Registry. Self-reviewed; persistence + geometry round-trip verified on M2 + Docker.
 - **PR #3** `feature/geoserver-layers` → `dev` (merged 2026-07-08): GIS boundaries + GeoServer layers + initial MapLibre dashboard. Self-reviewed; GeoServer provisioning + WMS verified live on M2; web build/dev verified.
 - **PR #4** `feature/satellite-ingestion` → `dev` (merged 2026-07-08): Automated satellite ingestion. Self-reviewed; full stack (postgis+minio+api+ingestion) verified on M2 — trigger → 2 scenes retrieved → MinIO staged → job done. **Phase 1 CLOSED** — technical doc at `docs/phase-1-foundation.md`.
+- **PR #5** `feature/design-system-space` → `dev` (merged 2026-07-08): ProjectWatch Space design system + AGENTS.md/conventions update.
+- **PR #6** `feature/phase2-intelligence` → `dev` (merged 2026-07-11): Phase 2 intelligence layer — analysis API, Python change-detection engine/worker, Mission Control dashboard (Space theme), Docker service. Self-reviewed; build (API + web + Docker) verified on M2. **Phase 2 CLOSED** — technical doc at `docs/phase-2-intelligence.md`.
 
 ---
 

@@ -1,0 +1,4 @@
+# ProjectWatch Rwanda intelligence service requirements.
+# GDAL/Rasterio are provided system-wide by the OSGeo base image.
+requests>=2.31.0
+python-dotenv>=1.0.0

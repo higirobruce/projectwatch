@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import type { Milestone, Project, ProjectCreate } from "../domain/project.js";
 import type { Ingestion, IngestionPatch, IngestionScene } from "../domain/ingestion.js";
+import type { Analysis, AnalysisPatch } from "../domain/analysis.js";
 
 /**
  * PostGIS-backed repositories (Phase 1).
@@ -183,13 +184,101 @@ export class PostgresIngestionRepository {
   }
 }
 
+interface AnalysisRow {
+  id: string;
+  project_id: string;
+  status: string;
+  change_score: number | null;
+  confidence: number | null;
+  progress_pct: number | null;
+  risk: string | null;
+  reason: string | null;
+  scenes_compared: string[];
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToAnalysis(row: AnalysisRow): Analysis {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    status: row.status,
+    changeScore: row.change_score ?? undefined,
+    confidence: row.confidence ?? undefined,
+    progressPct: row.progress_pct ?? undefined,
+    risk: row.risk ?? undefined,
+    reason: row.reason ?? undefined,
+    scenesCompared: row.scenes_compared ?? [],
+    error: row.error ?? undefined,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+  };
+}
+
+export class PostgresAnalysisRepository {
+  constructor(private readonly pool: Pool) {}
+
+  async create(projectId: string): Promise<Analysis> {
+    const { rows } = await this.pool.query<AnalysisRow>(
+      `INSERT INTO analyses (id, project_id, status)
+       VALUES (gen_random_uuid(), $1, 'pending') RETURNING *`,
+      [projectId],
+    );
+    return rowToAnalysis(rows[0]!);
+  }
+
+  async listByProject(projectId: string): Promise<Analysis[]> {
+    const { rows } = await this.pool.query<AnalysisRow>(
+      `SELECT * FROM analyses WHERE project_id = $1 ORDER BY created_at DESC`,
+      [projectId],
+    );
+    return rows.map(rowToAnalysis);
+  }
+
+  async listPending(): Promise<Analysis[]> {
+    const { rows } = await this.pool.query<AnalysisRow>(
+      `SELECT * FROM analyses WHERE status = 'pending' ORDER BY created_at ASC`,
+    );
+    return rows.map(rowToAnalysis);
+  }
+
+  async get(id: string): Promise<Analysis | null> {
+    const { rows } = await this.pool.query<AnalysisRow>(`SELECT * FROM analyses WHERE id = $1`, [id]);
+    return rows[0] ? rowToAnalysis(rows[0]) : null;
+  }
+
+  async update(id: string, patch: AnalysisPatch): Promise<Analysis | null> {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    let i = 1;
+    if (patch.status !== undefined) { sets.push(`status = $${i++}`); values.push(patch.status); }
+    if (patch.changeScore !== undefined) { sets.push(`change_score = $${i++}`); values.push(patch.changeScore); }
+    if (patch.confidence !== undefined) { sets.push(`confidence = $${i++}`); values.push(patch.confidence); }
+    if (patch.progressPct !== undefined) { sets.push(`progress_pct = $${i++}`); values.push(patch.progressPct); }
+    if (patch.risk !== undefined) { sets.push(`risk = $${i++}`); values.push(patch.risk); }
+    if (patch.reason !== undefined) { sets.push(`reason = $${i++}`); values.push(patch.reason); }
+    if (patch.scenesCompared !== undefined) { sets.push(`scenes_compared = $${i++}`); values.push(patch.scenesCompared); }
+    if (patch.error !== undefined) { sets.push(`error = $${i++}`); values.push(patch.error); }
+    sets.push(`updated_at = now()`);
+    values.push(id);
+    const { rows } = await this.pool.query<AnalysisRow>(
+      `UPDATE analyses SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`,
+      values,
+    );
+    return rows[0] ? rowToAnalysis(rows[0]) : null;
+  }
+}
+
 export class PostgresStore {
   readonly projects: PostgresProjectRepository;
   readonly ingestions: PostgresIngestionRepository;
+  readonly analyses: PostgresAnalysisRepository;
 
   constructor(private readonly pool: Pool) {
     this.projects = new PostgresProjectRepository(pool);
     this.ingestions = new PostgresIngestionRepository(pool);
+    this.analyses = new PostgresAnalysisRepository(pool);
   }
 
   async init(): Promise<void> {
