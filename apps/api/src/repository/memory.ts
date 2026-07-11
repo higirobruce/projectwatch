@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Project, ProjectCreate } from "../domain/project.js";
 import type { Ingestion, IngestionPatch } from "../domain/ingestion.js";
+import type { Analysis, AnalysisPatch } from "../domain/analysis.js";
 
 /**
  * In-memory stores for Phase 1 scaffolding / local dev without PostGIS.
@@ -67,9 +68,61 @@ export class InMemoryIngestionRepository {
   }
 }
 
+export class InMemoryAnalysisRepository {
+  private readonly analyses = new Map<string, Analysis>();
+
+  async create(projectId: string): Promise<Analysis> {
+    const now = new Date().toISOString();
+    const analysis: Analysis = {
+      id: randomUUID(),
+      projectId,
+      status: "pending",
+      changeScore: undefined,
+      confidence: undefined,
+      progressPct: undefined,
+      risk: undefined,
+      reason: undefined,
+      scenesCompared: [],
+      error: undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.analyses.set(analysis.id, analysis);
+    return analysis;
+  }
+  async listByProject(projectId: string): Promise<Analysis[]> {
+    return [...this.analyses.values()].filter((a) => a.projectId === projectId);
+  }
+  async listPending(): Promise<Analysis[]> {
+    return [...this.analyses.values()].filter((a) => a.status === "pending");
+  }
+  async get(id: string): Promise<Analysis | null> {
+    return this.analyses.get(id) ?? null;
+  }
+  async update(id: string, patch: AnalysisPatch): Promise<Analysis | null> {
+    const cur = this.analyses.get(id);
+    if (!cur) return null;
+    const next: Analysis = {
+      ...cur,
+      ...patch,
+      changeScore: patch.changeScore === undefined ? cur.changeScore : patch.changeScore,
+      confidence: patch.confidence === undefined ? cur.confidence : patch.confidence,
+      progressPct: patch.progressPct === undefined ? cur.progressPct : patch.progressPct,
+      risk: patch.risk === undefined ? cur.risk : patch.risk,
+      reason: patch.reason === undefined ? cur.reason : patch.reason,
+      scenesCompared: patch.scenesCompared ?? cur.scenesCompared,
+      error: patch.error === undefined ? cur.error : patch.error,
+      updatedAt: new Date().toISOString(),
+    };
+    this.analyses.set(id, next);
+    return next;
+  }
+}
+
 export class InMemoryStore {
   readonly projects = new InMemoryProjectRepository();
   readonly ingestions = new InMemoryIngestionRepository();
+  readonly analyses = new InMemoryAnalysisRepository();
   async init(): Promise<void> {}
   async close(): Promise<void> {}
 }

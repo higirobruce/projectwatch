@@ -4,6 +4,7 @@ import { InMemoryStore } from "./repository/memory.js";
 import { PostgresStore } from "./repository/postgres.js";
 import { createProjectRouter } from "./routes/projects.js";
 import { createWorkerRouter } from "./routes/ingestions.js";
+import { createAnalysisWorkerRouter } from "./routes/analyses.js";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
 
   app.use("/api/projects", createProjectRouter(store));
   app.use("/api/ingestions", createWorkerRouter(store));
+  app.use("/api/analyses", createAnalysisWorkerRouter(store));
 
   app.listen(PORT, () => {
     console.log(`ProjectWatch API listening on http://localhost:${PORT}`);
